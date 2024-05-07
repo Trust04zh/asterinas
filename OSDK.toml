@@ -1,0 +1,50 @@
+vars = [
+    ["SMP", "1"],
+    ["MEM", "2G"],
+    ["EXT2_IMG", "$OSDK_CWD/regression/build/ext2.img"],
+    ["EXFAT_IMG", "$OSDK_CWD/regression/build/exfat.img"],
+]
+
+[boot]
+method = "qemu-direct"
+
+[run]
+vars = [
+    ["OVMF_PATH", "/home/monad/projects/asterinas/next/OVMF"],
+]
+boot.kcmd_args = [
+    "SHELL=/bin/sh",
+    "LOGNAME=root",
+    "HOME=/",
+    "USER=root",
+    "init=/usr/bin/busybox",
+]
+boot.init_args = ["sh", "-l"]
+#boot.init_args = ["ls", "-alF"]
+#boot.initramfs = "regression/build/initramfs.cpio.gz"
+boot.initramfs = "../initramfs.cpio.gz"
+
+[qemu]
+#args = "$(./tools/qemu_args.sh)"
+args = """\
+    -cpu rv64,zba=true,zbb=true \
+    -machine virt \
+    -m 2G \
+    --no-reboot \
+    -nographic \
+    -display none \
+    -serial chardev:mux \
+    -monitor chardev:mux \
+    -chardev stdio,id=mux,mux=on,signal=off,logfile=qemu.log \
+    -drive if=none,format=raw,id=x0,file=$EXT2_IMG \
+    -drive if=none,format=raw,id=x1,file=$EXFAT_IMG \
+    -device virtio-blk-device,drive=x0 \
+    -device virtio-keyboard-device \
+    -device virtio-serial-device \
+    -device virtconsole,chardev=mux \
+"""
+
+[grub]
+protocol = "multiboot2"
+skip_menu = true
+debug_print = false

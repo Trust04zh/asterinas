@@ -1,0 +1,90 @@
+vars = [
+    ["SMP", "1"],
+    ["MEM", "2G"],
+    ["EXT2_IMG", "$OSDK_CWD/regression/build/ext2.img"],
+    ["EXFAT_IMG", "$OSDK_CWD/regression/build/exfat.img"],
+]
+
+[boot]
+method = "grub-rescue-iso"
+
+[run]
+vars = [
+    ["OVMF_PATH", "/home/monad/projects/asterinas/next/OVMF"],
+]
+boot.kcmd_args = [
+    "SHELL=/bin/sh",
+    "LOGNAME=root",
+    "HOME=/",
+    "USER=root",
+    "PATH=/bin:/benchmark",
+    "init=/usr/bin/busybox",
+]
+boot.init_args = ["sh", "-l"]
+boot.initramfs = "regression/build/initramfs.cpio.gz"
+
+[test]
+boot.method = "qemu-direct"
+
+[grub]
+protocol = "multiboot2"
+skip_menu = true
+debug_print = false
+
+[qemu]
+args = "$(./tools/qemu_args.sh)"
+
+[scheme."microvm"]
+boot.method = "qemu-direct"
+vars = [
+    ["MICROVM", "true"],
+]
+qemu.args = "$(./tools/qemu_args.sh)"
+
+[scheme."iommu"]
+supported_archs = ["x86_64"]
+vars = [
+    ["IOMMU_DEV_EXTRA", ",iommu_platform=on,ats=on"],
+    ["IOMMU_EXTRA_ARGS", """\
+        -device intel-iommu,intremap=on,device-iotlb=on \
+        -device ioh3420,id=pcie.0,chassis=1\
+    """],
+]
+qemu.args = "$(./tools/qemu_args.sh)"
+
+[scheme."tdx"]
+supported_archs = ["x86_64"]
+build.features = ["intel_tdx"]
+vars = [
+    ["MEM", "8G"],
+    ["OVMF_PATH", "~/tdx-tools/ovmf"],
+]
+boot.method = "grub-qcow2"
+grub.mkrescue_path = "~/tdx-tools/grub"
+grub.protocol = "linux"
+qemu.args = """\
+    -accel kvm \
+    -name process=tdxvm,debug-threads=on \
+    -m $MEM \
+    -smp $SMP \
+    -vga none \
+    -nographic \
+    -monitor pty \
+    -no-hpet \
+    -nodefaults \
+    -monitor telnet:127.0.0.1:9003,server,nowait \
+    -bios $OVMF_PATH/OVMF_VARS.fd \
+    -object tdx-guest,sept-ve-disable,id=tdx,quote-generation-service=vsock:2:4050 \
+    -cpu host,-kvm-steal-time,pmu=off,tsc-freq=1000000000 \
+    -machine q35,kernel_irqchip=split,confidential-guest-support=tdx \
+    -device virtio-net-pci,netdev=mynet0,disable-legacy=on,disable-modern=off \
+    -device virtio-keyboard-pci,disable-legacy=on,disable-modern=off \
+    -device virtio-blk-pci,bus=pcie.0,addr=0x6,drive=x0,disable-legacy=on,disable-modern=off \
+    -drive file=fs.img,if=none,format=raw,id=x0 \
+    -netdev user,id=mynet0,hostfwd=tcp::10027-:22,hostfwd=tcp::54136-:8090 \
+    -chardev stdio,id=mux,mux=on,logfile=$OSDK_CWD/$(date '+%Y-%m-%dT%H%M%S').log \
+    -device virtio-serial,romfile= \
+    -device virtconsole,chardev=mux \
+    -monitor chardev:mux \
+    -serial chardev:mux \
+"""
