@@ -1,3 +1,5 @@
+教学用，可能有大改。
+
 <p align="center">
     <img src="docs/src/images/logo_en.svg" alt="asterinas-logo" width="620"><br>
     A secure, fast, and general-purpose OS kernel written in Rust and compatible with Linux<br/>
