@@ -1021,6 +1021,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "myos"
+version = "0.1.0"
+
+[[package]]
 name = "never-say-never"
 version = "6.6.666"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1488,6 +1492,7 @@ dependencies = [
 [[package]]
 name = "trapframe"
 version = "0.9.0"
+source = "git+https://github.com/asterinas/trapframe-rs?rev=14e9d2b#14e9d2ba48e64d7dfe68bc3c34cda2c6d87138f7"
 dependencies = [
  "log",
  "pod",
